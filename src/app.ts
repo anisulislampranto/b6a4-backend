@@ -6,7 +6,7 @@ const app: Application = express();
 
 app.use(express.json());
 
-app.all('/api/auth/{*any}', toNodeHandler(auth));
+app.all('/api/auth/*splat', toNodeHandler(auth));
 
 app.get('/', (req, res) => {
     res.send("Hello, world!")
