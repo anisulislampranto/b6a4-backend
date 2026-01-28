@@ -2,10 +2,13 @@ model Category {
   id          String   @id @default(uuid())
   name        String
   description String?
+  isActive    Boolean  @default(true)
 
   parentId    String?
   parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryTree")
+
+  medicines   Medicine[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
