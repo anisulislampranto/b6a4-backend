@@ -1,7 +1,6 @@
 model Medicine {
   id            String   @id @default(uuid())
   name          String
-  brand         String
   description   String?
   price         Float
   stock         Int
@@ -13,6 +12,9 @@ model Medicine {
 
   sellerId      String
   seller        User     @relation(fields: [sellerId], references: [id])
+
+  brandId       String
+  brand         Brand    @relation(fields: [brandId], references: [id])
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
