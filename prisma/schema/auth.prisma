@@ -9,8 +9,15 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  role          Role     @default(CUSTOMER)
 
   @@map("user")
+}
+
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
 }
 
 model Session {
