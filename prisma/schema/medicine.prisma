@@ -17,6 +17,7 @@ model Medicine {
   brand         Brand    @relation(fields: [brandId], references: [id])
 
   orderItems    OrderItem[]
+  reviews       Review[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
