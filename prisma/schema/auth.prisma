@@ -11,6 +11,7 @@ model User {
   accounts      Account[]
   role          Role     @default(CUSTOMER)
   medicines   Medicine[] 
+  orders      Order[]
 
   @@map("user")
 }

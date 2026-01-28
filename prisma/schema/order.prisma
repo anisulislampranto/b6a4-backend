@@ -1,0 +1,29 @@
+model Order {
+  id            String       @id @default(uuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+
+  totalAmount   Float
+  status        OrderStatus  @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  address       String
+
+  items         OrderItem[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
