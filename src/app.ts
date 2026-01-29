@@ -2,6 +2,7 @@ import express, { Application } from 'express'
 import { toNodeHandler } from "better-auth/node";
 import { auth } from './lib/auth';
 import cors from 'cors'
+import { categoryRouter } from './modules/category/category.router';
 
 const app: Application = express();
 
@@ -16,5 +17,6 @@ app.use(express.json());
 app.get('/', (req, res) => {
     res.send("Hello, world!")
 })
+app.use('/api/category', categoryRouter)
 
 export default app;
