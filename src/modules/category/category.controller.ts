@@ -13,6 +13,15 @@ const createCategory = async (req: Request, res: Response) => {
     }
 }
 
+const getAllCategories = async (req: Request, res: Response) => {
+    const categories = await categoryService.getAllCategories();
+    res.json({
+        data: categories,
+        message: 'Fetched All Categories!'
+    });
+}
+
 export const CategoryController = {
     createCategory,
+    getAllCategories
 }

@@ -11,7 +11,15 @@ const createCategory = async (data: Category) => {
     });
 }
 
+const getAllCategories = async () => {
+    return prisma.category.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+    });
+}
+
 
 export const categoryService = {
     createCategory,
+    getAllCategories
 }
