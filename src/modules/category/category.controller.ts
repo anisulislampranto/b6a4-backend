@@ -14,14 +14,28 @@ const createCategory = async (req: Request, res: Response) => {
 }
 
 const getAllCategories = async (req: Request, res: Response) => {
-    const categories = await categoryService.getAllCategories();
-    res.json({
-        data: categories,
-        message: 'Fetched All Categories!'
-    });
+    try {
+        const categories = await categoryService.getAllCategories();
+        res.json({
+            data: categories,
+            message: 'Fetched All Categories!'
+        });
+    } catch (error) {
+        res.status(400).json({ message: "Failed to get all category", error: error });
+    }
+}
+
+const deleteCategory = async (req: Request, res: Response) => {
+    try {
+        await categoryService.deleteCategory(req.params.id as string);
+        res.json({ message: "Category disabled" });
+    } catch (error) {
+        res.status(400).json({ message: "Failed to get all category", error: error });
+    }
 }
 
 export const CategoryController = {
     createCategory,
-    getAllCategories
+    getAllCategories,
+    deleteCategory
 }
