@@ -6,7 +6,7 @@ const createBrand = async ({ data }: { data: Brand }) => {
         data: {
             name: data.name,
             description: data.description,
-            logo: data.logo,
+            logo: data.logo || "",
         },
     });
 }

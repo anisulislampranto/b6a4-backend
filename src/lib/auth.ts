@@ -9,6 +9,15 @@ export const auth = betterAuth({
     trustedOrigins: [
         process.env.APP_URL!
     ],
+    user: {
+        additionalFields: {
+            role: {
+                type: 'string',
+                defaultValue: 'CUSTOMER',
+                required: false
+            },
+        }
+    },
     emailAndPassword: {
         enabled: true,
     },

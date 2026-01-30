@@ -3,7 +3,7 @@ import { brandService } from "./brandh.service";
 
 const createBrand = async (req: Request, res: Response) => {
     try {
-        const brand = await brandService.createBrand(req.body);
+        const brand = await brandService.createBrand({data: req.body});
         res.status(201).json({
             data: brand,
             message: 'Created brand successfully!'
