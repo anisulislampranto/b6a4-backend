@@ -2,9 +2,10 @@ import express, { Application } from 'express'
 import { toNodeHandler } from "better-auth/node";
 import { auth } from './lib/auth';
 import cors from 'cors'
-import { categoryRouter } from './modules/category/category.router';
-import { brandRouter } from './modules/brand/brand.route';
+import { categoryRouter } from './modules/category/category.routes';
+import { brandRouter } from './modules/brand/brand.routes';
 import { medicineRouter } from './modules/medicine/medicine.routes';
+import { userRouter } from './modules/user/user.routes';
 
 const app: Application = express();
 
@@ -22,5 +23,6 @@ app.get('/', (req, res) => {
 app.use('/api/category', categoryRouter)
 app.use('/api/brands', brandRouter)
 app.use("/api/medicines", medicineRouter);
+app.use("/api/users", userRouter);
 
 export default app;
