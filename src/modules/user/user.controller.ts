@@ -25,7 +25,28 @@ const updateUser = async (req: Request, res: Response) => {
     }
 }
 
+const getMe = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) {
+            res.json(({
+                data: null,
+                message: 'You are not allowed to perform this action'
+            }))
+            return
+        }
+        const id = req.user.id as string;
+        const user = await userService.getMe(id);
+        res.json({
+            data: user,
+            message: 'Fetched signed in user information Successfully!'
+        });
+    } catch (error) {
+        res.status(400).json({ message: "Failed to fetch user", error: error });
+    }
+}
+
 export const UserController = {
     getAllUsers,
-    updateUser
+    updateUser,
+    getMe
 }
