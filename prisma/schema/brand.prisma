@@ -1,7 +1,6 @@
 model Brand {
   id          String    @id @default(uuid())
   name        String    @unique
-  slug        String    @unique
   description String?
   logo        String?
   isActive    Boolean   @default(true)
