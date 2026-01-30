@@ -4,6 +4,7 @@ import { auth } from './lib/auth';
 import cors from 'cors'
 import { categoryRouter } from './modules/category/category.router';
 import { brandRouter } from './modules/brand/brand.route';
+import { medicineRouter } from './modules/medicine/medicine.routes';
 
 const app: Application = express();
 
@@ -20,5 +21,6 @@ app.get('/', (req, res) => {
 })
 app.use('/api/category', categoryRouter)
 app.use('/api/brands', brandRouter)
+app.use("/api/medicines", medicineRouter);
 
 export default app;
