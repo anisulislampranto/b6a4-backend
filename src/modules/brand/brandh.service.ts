@@ -11,7 +11,15 @@ const createBrand = async ({ data }: { data: Brand }) => {
     });
 }
 
+const getBrands = async () => {
+    return prisma.brand.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+    });
+}
+
 
 export const brandService = {
-    createBrand
+    createBrand,
+    getBrands
 }

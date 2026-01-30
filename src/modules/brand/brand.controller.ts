@@ -13,6 +13,19 @@ const createBrand = async (req: Request, res: Response) => {
     }
 }
 
+const getBrands = async (req: Request, res: Response) => {
+    try {
+        const brands = await brandService.getBrands();
+        res.status(200).json({
+            data: brands,
+            message: 'Fetched brands successfully!'
+        });
+    } catch (err) {
+        res.status(400).json({ message: "Failed to create brand", error: err });
+    }
+}
+
 export const BrandController = {
-    createBrand
+    createBrand,
+    getBrands
 }

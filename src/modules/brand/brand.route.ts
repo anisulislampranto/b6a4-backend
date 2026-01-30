@@ -4,5 +4,6 @@ import { BrandController } from "./brand.controller";
 const router = express.Router();
 
 router.post("/", BrandController.createBrand);
+router.get("/", BrandController.getBrands);
 
-export const categoryRouter: Router = router;
+export const brandRouter: Router = router;
