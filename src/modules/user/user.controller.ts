@@ -13,6 +13,19 @@ const getAllUsers = async (req: Request, res: Response) => {
     }
 }
 
+const updateUser = async (req: Request, res: Response) => {
+    try {
+        const users = await userService.updateUser({ id: req.params.id as string, data: req.body });
+        res.json({
+            data: users,
+            message: 'User Updated Successfully!'
+        });
+    } catch (error) {
+        res.status(400).json({ message: "Failed to update user", error: error });
+    }
+}
+
 export const UserController = {
     getAllUsers,
+    updateUser
 }
