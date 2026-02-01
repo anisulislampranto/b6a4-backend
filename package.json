@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "npx tsx watch src/server.ts"
+    "dev": "npx tsx watch src/server.ts",
+    "seed:admin": "npx tsx src/script/seedAdmin.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
