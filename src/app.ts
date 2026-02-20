@@ -6,6 +6,7 @@ import { categoryRouter } from './modules/category/category.routes';
 import { brandRouter } from './modules/brand/brand.routes';
 import { medicineRouter } from './modules/medicine/medicine.routes';
 import { userRouter } from './modules/user/user.routes';
+import { notFound } from './middleware/notFound';
 
 const app: Application = express();
 
@@ -24,5 +25,7 @@ app.use('/api/category', categoryRouter)
 app.use('/api/brands', brandRouter)
 app.use("/api/medicines", medicineRouter);
 app.use("/api/users", userRouter);
+
+app.use(notFound)
 
 export default app;
