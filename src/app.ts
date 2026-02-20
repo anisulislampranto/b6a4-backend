@@ -7,6 +7,7 @@ import { brandRouter } from './modules/brand/brand.routes';
 import { medicineRouter } from './modules/medicine/medicine.routes';
 import { userRouter } from './modules/user/user.routes';
 import { notFound } from './middleware/notFound';
+import errorHandler from './middleware/globalErrorHandler';
 
 const app: Application = express();
 
@@ -27,5 +28,6 @@ app.use("/api/medicines", medicineRouter);
 app.use("/api/users", userRouter);
 
 app.use(notFound)
+app.use(errorHandler)
 
 export default app;
