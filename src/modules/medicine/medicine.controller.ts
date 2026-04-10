@@ -49,8 +49,27 @@ const getMyMedicines = async (req: Request, res: Response) => {
     }
 }
 
+const updateMedicine = async (req: Request, res: Response) => {
+    try {
+        if (!req.user?.id || !req.user?.role) {
+            return res.status(401).json({
+                message: "You are not authorized!",
+            });
+        }
+
+        const medicine = await medicineService.updateMedicine(req.params.id as string, req.body, req.user.id, req.user.role);
+        res.json({
+            data: medicine,
+            message: "Medicine updated successfully!",
+        });
+    } catch (error: any) {
+        res.status(400).json({ message: error.message || "Failed to update medicine", error });
+    }
+}
+
 export const MedicineController = {
     createMedicine,
     getAllMedicines,
-    getMyMedicines
+    getMyMedicines,
+    updateMedicine
 }

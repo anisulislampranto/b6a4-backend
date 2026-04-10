@@ -51,7 +51,7 @@ const getMyMedicines = async (userId: string, role: string) => {
     });
 };
 
-const getAllMedicines = async(query: MedicineQuery) => {
+const getAllMedicines = async (query: MedicineQuery) => {
     const {
         search,
         category,
@@ -103,8 +103,36 @@ const getAllMedicines = async(query: MedicineQuery) => {
     };
 }
 
+const updateMedicine = async (id: string, payload: Partial<CreateMedicinePayload>, userId: string, role: string) => {
+    const medicine = await prisma.medicine.findUnique({
+        where: { id },
+    });
+
+    if (!medicine) {
+        throw new Error("Medicine not found!");
+    }
+
+    if (role !== "ADMIN" && medicine.sellerId !== userId) {
+        throw new Error("You are not authorized to update this medicine!");
+    }
+
+    return prisma.medicine.update({
+        where: { id },
+        data: {
+            name: payload.name,
+            description: payload.description,
+            price: payload.price ? Number(payload.price) : undefined,
+            stock: payload.stock !== undefined ? Number(payload.stock) : undefined,
+            image: payload.image,
+            categoryId: payload.categoryId,
+            brandId: payload.brandId,
+        },
+    });
+};
+
 export const medicineService = {
     createMedicine,
     getAllMedicines,
     getMyMedicines,
+    updateMedicine,
 }
