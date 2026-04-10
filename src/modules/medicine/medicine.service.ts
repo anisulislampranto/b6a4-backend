@@ -11,6 +11,45 @@ interface MedicineQuery {
     limit?: string;
 }
 
+interface CreateMedicinePayload {
+    name: string;
+    description?: string;
+    price: number | string;
+    stock: number | string;
+    image?: string;
+    categoryId: string;
+    brandId: string;
+}
+
+const createMedicine = async (payload: CreateMedicinePayload, sellerId: string) => {
+    return prisma.medicine.create({
+        data: {
+            name: payload.name,
+            description: payload.description || null,
+            price: Number(payload.price),
+            stock: Number(payload.stock),
+            image: payload.image || null,
+            categoryId: payload.categoryId,
+            brandId: payload.brandId,
+            sellerId,
+        },
+    });
+};
+
+const getMyMedicines = async (userId: string, role: string) => {
+    const where: Prisma.MedicineWhereInput = role === "ADMIN"
+        ? {}
+        : { sellerId: userId };
+
+    return prisma.medicine.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+            category: true,
+            brand: true,
+        },
+    });
+};
 
 const getAllMedicines = async(query: MedicineQuery) => {
     const {
@@ -65,5 +104,7 @@ const getAllMedicines = async(query: MedicineQuery) => {
 }
 
 export const medicineService = {
-    getAllMedicines
+    createMedicine,
+    getAllMedicines,
+    getMyMedicines,
 }

@@ -29,7 +29,7 @@ const auth = (...roles: UserRole[]) => {
             })
 
             if (!session) {
-                res.status(401).json({
+                return res.status(401).json({
                     message: 'You are not authorized!',
                     success: false
                 })
@@ -44,7 +44,7 @@ const auth = (...roles: UserRole[]) => {
             }
 
             if (roles.length && !roles.includes(req.user.role as UserRole)) {
-                res.status(403).json({
+                return res.status(403).json({
                     message: 'Forbidden! you don not have permission to access this resources!',
                     success: false
                 })
