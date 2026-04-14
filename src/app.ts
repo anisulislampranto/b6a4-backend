@@ -5,6 +5,7 @@ import cors from 'cors'
 import { categoryRouter } from './modules/category/category.routes';
 import { brandRouter } from './modules/brand/brand.routes';
 import { medicineRouter } from './modules/medicine/medicine.routes';
+import { orderRouter } from './modules/order/order.routes';
 import { userRouter } from './modules/user/user.routes';
 import { notFound } from './middleware/notFound';
 import errorHandler from './middleware/globalErrorHandler';
@@ -25,6 +26,7 @@ app.get('/', (req, res) => {
 app.use('/api/category', categoryRouter)
 app.use('/api/brands', brandRouter)
 app.use("/api/medicines", medicineRouter);
+app.use("/api/orders", orderRouter);
 app.use("/api/users", userRouter);
 
 app.use(notFound)
