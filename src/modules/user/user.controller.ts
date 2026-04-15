@@ -45,8 +45,28 @@ const getMe = async (req: Request, res: Response) => {
     }
 }
 
+const updateMe = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) {
+            res.json(({
+                data: null,
+                message: 'You are not allowed to perform this action'
+            }))
+            return
+        }
+        const users = await userService.updateUser({ id: req.user.id as string, data: req.body });
+        res.json({
+            data: users,
+            message: 'Profile Updated Successfully!'
+        });
+    } catch (error) {
+        res.status(400).json({ message: "Failed to update profile", error: error });
+    }
+}
+
 export const UserController = {
     getAllUsers,
     updateUser,
-    getMe
+    getMe,
+    updateMe
 }
