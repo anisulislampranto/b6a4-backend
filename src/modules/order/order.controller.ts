@@ -48,6 +48,29 @@ const getMyOrders = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
+const getOrderById = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const role = req.user?.role;
+        const { id } = req.params;
+
+        if (!userId || !role) {
+            return res.status(401).json({
+                message: "User not authenticated",
+            });
+        }
+
+        const order = await orderService.getOrderById(id as string, userId, role);
+
+        res.status(200).json({
+            data: order,
+            message: "Order fetched successfully!",
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const orders = await orderService.getAllOrders();
@@ -136,6 +159,7 @@ const updateSellerOrderStatus = async (req: Request, res: Response, next: NextFu
 export const OrderController = {
     createOrder,
     getMyOrders,
+    getOrderById,
     getAllOrders,
     updateOrderStatus,
     getSellerOrders,

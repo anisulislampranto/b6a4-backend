@@ -175,6 +175,100 @@ const getSellerOrders = async (sellerId: string) => {
     });
 };
 
+const getOrderById = async (orderId: string, userId: string, role: string) => {
+    if (role === "ADMIN") {
+        const order = await prisma.order.findUnique({
+            where: { id: orderId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                items: {
+                    include: {
+                        medicine: true,
+                    },
+                },
+            },
+        });
+
+        if (!order) {
+            throw new AppError(404, "Order not found");
+        }
+
+        return order;
+    }
+
+    if (role === "SELLER") {
+        const order = await prisma.order.findFirst({
+            where: {
+                id: orderId,
+                items: {
+                    some: {
+                        medicine: {
+                            sellerId: userId,
+                        },
+                    },
+                },
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                items: {
+                    where: {
+                        medicine: {
+                            sellerId: userId,
+                        },
+                    },
+                    include: {
+                        medicine: true,
+                    },
+                },
+            },
+        });
+
+        if (!order) {
+            throw new AppError(404, "Order not found");
+        }
+
+        return order;
+    }
+
+    const order = await prisma.order.findFirst({
+        where: {
+            id: orderId,
+            userId,
+        },
+        include: {
+            items: {
+                include: {
+                    medicine: {
+                        select: {
+                            id: true,
+                            name: true,
+                            image: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!order) {
+        throw new AppError(404, "Order not found");
+    }
+
+    return order;
+};
+
 const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     const existingOrder = await prisma.order.findUnique({
         where: { id: orderId },
@@ -226,6 +320,7 @@ const updateSellerOrderStatus = async (orderId: string, sellerId: string, status
 export const orderService = {
     createOrder,
     getMyOrders,
+    getOrderById,
     getAllOrders,
     getSellerOrders,
     updateOrderStatus,

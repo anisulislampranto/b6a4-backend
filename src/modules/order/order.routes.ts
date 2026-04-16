@@ -8,6 +8,7 @@ router.post("/", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), Order
 router.get("/my", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.getMyOrders);
 router.get("/seller", auth(UserRole.SELLER, UserRole.ADMIN), OrderController.getSellerOrders);
 router.get("/all", auth(UserRole.ADMIN), OrderController.getAllOrders);
+router.get("/:id", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.getOrderById);
 router.patch("/seller/:id", auth(UserRole.SELLER, UserRole.ADMIN), OrderController.updateSellerOrderStatus);
 router.patch("/:id", auth(UserRole.ADMIN), OrderController.updateOrderStatus);
 
