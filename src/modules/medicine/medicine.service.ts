@@ -103,6 +103,19 @@ const getAllMedicines = async (query: MedicineQuery) => {
     };
 }
 
+const getMedicineById = async (id: string) => {
+    return prisma.medicine.findFirst({
+        where: {
+            id,
+            isActive: true,
+        },
+        include: {
+            category: true,
+            brand: true,
+        },
+    });
+};
+
 const updateMedicine = async (id: string, payload: Partial<CreateMedicinePayload>, userId: string, role: string) => {
     const medicine = await prisma.medicine.findUnique({
         where: { id },
@@ -133,6 +146,7 @@ const updateMedicine = async (id: string, payload: Partial<CreateMedicinePayload
 export const medicineService = {
     createMedicine,
     getAllMedicines,
+    getMedicineById,
     getMyMedicines,
     updateMedicine,
 }

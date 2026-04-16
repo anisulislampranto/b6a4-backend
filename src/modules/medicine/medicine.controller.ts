@@ -31,6 +31,24 @@ const getAllMedicines = async (req: Request, res: Response) => {
     }
 }
 
+const getMedicineById = async (req: Request, res: Response) => {
+    try {
+        const medicine = await medicineService.getMedicineById(req.params.id as string);
+        if (!medicine) {
+            return res.status(404).json({
+                message: "Medicine not found!",
+            });
+        }
+
+        res.json({
+            data: medicine,
+            message: "Fetched medicine successfully!",
+        });
+    } catch (error) {
+        res.status(400).json({ message: "Failed to fetch medicine", error });
+    }
+}
+
 const getMyMedicines = async (req: Request, res: Response) => {
     try {
         if (!req.user?.id || !req.user?.role) {
@@ -70,6 +88,7 @@ const updateMedicine = async (req: Request, res: Response) => {
 export const MedicineController = {
     createMedicine,
     getAllMedicines,
+    getMedicineById,
     getMyMedicines,
     updateMedicine
 }
