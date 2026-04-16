@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { OrderStatus } from "../../../generated/prisma/client";
 
 export interface CreateOrderPayload {
     address: string;
@@ -117,7 +118,68 @@ const getAllOrders = async () => {
     });
 };
 
-const updateOrderStatus = async (orderId: string, status: any) => {
+const getSellerOrders = async (sellerId: string) => {
+    return prisma.order.findMany({
+        where: {
+            items: {
+                some: {
+                    medicine: {
+                        sellerId,
+                    },
+                },
+            },
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                },
+            },
+            items: {
+                where: {
+                    medicine: {
+                        sellerId,
+                    },
+                },
+                include: {
+                    medicine: true,
+                },
+            },
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+};
+
+const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    return prisma.order.update({
+        where: { id: orderId },
+        data: { status },
+    });
+};
+
+const updateSellerOrderStatus = async (orderId: string, sellerId: string, status: OrderStatus) => {
+    const order = await prisma.order.findFirst({
+        where: {
+            id: orderId,
+            items: {
+                some: {
+                    medicine: {
+                        sellerId,
+                    },
+                },
+            },
+        },
+        select: { id: true },
+    });
+
+    if (!order) {
+        throw new Error("Order not found for this seller");
+    }
+
     return prisma.order.update({
         where: { id: orderId },
         data: { status },
@@ -128,5 +190,7 @@ export const orderService = {
     createOrder,
     getMyOrders,
     getAllOrders,
-    updateOrderStatus
+    getSellerOrders,
+    updateOrderStatus,
+    updateSellerOrderStatus,
 };
