@@ -18,8 +18,15 @@ const getBrands = async () => {
     });
 }
 
+const deleteBrand = async (id: string) => {
+    return prisma.brand.update({
+        where: { id },
+        data: { isActive: false },
+    });
+}
 
 export const brandService = {
     createBrand,
-    getBrands
+    getBrands,
+    deleteBrand
 }

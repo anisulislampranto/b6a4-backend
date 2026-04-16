@@ -25,7 +25,17 @@ const getBrands = async (req: Request, res: Response) => {
     }
 }
 
+const deleteBrand = async (req: Request, res: Response) => {
+    try {
+        await brandService.deleteBrand(req.params.id as string);
+        res.status(200).json({ message: "Brand disabled" });
+    } catch (err) {
+        res.status(400).json({ message: "Failed to disable brand", error: err });
+    }
+}
+
 export const BrandController = {
     createBrand,
-    getBrands
+    getBrands,
+    deleteBrand
 }
