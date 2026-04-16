@@ -85,10 +85,28 @@ const updateMedicine = async (req: Request, res: Response) => {
     }
 }
 
+const deleteMedicine = async (req: Request, res: Response) => {
+    try {
+        if (!req.user?.id || !req.user?.role) {
+            return res.status(401).json({
+                message: "You are not authorized!",
+            });
+        }
+
+        await medicineService.deleteMedicine(req.params.id as string, req.user.id, req.user.role);
+        res.json({
+            message: "Medicine removed successfully!",
+        });
+    } catch (error: any) {
+        res.status(400).json({ message: error.message || "Failed to remove medicine", error });
+    }
+}
+
 export const MedicineController = {
     createMedicine,
     getAllMedicines,
     getMedicineById,
     getMyMedicines,
-    updateMedicine
+    updateMedicine,
+    deleteMedicine
 }

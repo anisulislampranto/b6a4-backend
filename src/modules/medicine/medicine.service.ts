@@ -134,11 +134,32 @@ const updateMedicine = async (id: string, payload: Partial<CreateMedicinePayload
         data: {
             name: payload.name,
             description: payload.description,
-            price: payload.price ? Number(payload.price) : undefined,
+            price: payload.price !== undefined ? Number(payload.price) : undefined,
             stock: payload.stock !== undefined ? Number(payload.stock) : undefined,
             image: payload.image,
             categoryId: payload.categoryId,
             brandId: payload.brandId,
+        },
+    });
+};
+
+const deleteMedicine = async (id: string, userId: string, role: string) => {
+    const medicine = await prisma.medicine.findUnique({
+        where: { id },
+    });
+
+    if (!medicine) {
+        throw new Error("Medicine not found!");
+    }
+
+    if (role !== "ADMIN" && medicine.sellerId !== userId) {
+        throw new Error("You are not authorized to delete this medicine!");
+    }
+
+    return prisma.medicine.update({
+        where: { id },
+        data: {
+            isActive: false,
         },
     });
 };
@@ -149,4 +170,5 @@ export const medicineService = {
     getMedicineById,
     getMyMedicines,
     updateMedicine,
+    deleteMedicine,
 }
