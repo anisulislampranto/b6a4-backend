@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { OrderStatus } from "../../../generated/prisma/client";
+import { AppError } from "../../lib/AppError";
 
 export interface CreateOrderPayload {
     address: string;
@@ -8,6 +9,26 @@ export interface CreateOrderPayload {
         quantity: number;
     }[];
 }
+
+const orderStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
+    PENDING: ["CONFIRMED", "CANCELLED"],
+    CONFIRMED: ["SHIPPED", "CANCELLED"],
+    SHIPPED: ["DELIVERED"],
+    DELIVERED: [],
+    CANCELLED: [],
+};
+
+const validateOrderStatusTransition = (currentStatus: OrderStatus, nextStatus: OrderStatus) => {
+    if (currentStatus === nextStatus) return;
+
+    const allowedNext = orderStatusTransitions[currentStatus];
+    if (!allowedNext.includes(nextStatus)) {
+        throw new AppError(
+            400,
+            `Invalid status transition from ${currentStatus} to ${nextStatus}`
+        );
+    }
+};
 
 const createOrder = async (userId: string, payload: CreateOrderPayload) => {
     const { address, items } = payload;
@@ -24,7 +45,7 @@ const createOrder = async (userId: string, payload: CreateOrderPayload) => {
 
 
             if (!medicine) {
-                throw new Error(`Medicine with ID ${item.medicineId} not found`);
+                throw new AppError(404, `Medicine with ID ${item.medicineId} not found`);
             }
 
             if (medicine.stock < item.quantity) {
@@ -155,6 +176,17 @@ const getSellerOrders = async (sellerId: string) => {
 };
 
 const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    const existingOrder = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { status: true },
+    });
+
+    if (!existingOrder) {
+        throw new AppError(404, "Order not found");
+    }
+
+    validateOrderStatusTransition(existingOrder.status, status);
+
     return prisma.order.update({
         where: { id: orderId },
         data: { status },
@@ -173,12 +205,17 @@ const updateSellerOrderStatus = async (orderId: string, sellerId: string, status
                 },
             },
         },
-        select: { id: true },
+        select: {
+            id: true,
+            status: true,
+        },
     });
 
     if (!order) {
-        throw new Error("Order not found for this seller");
+        throw new AppError(404, "Order not found for this seller");
     }
+
+    validateOrderStatusTransition(order.status, status);
 
     return prisma.order.update({
         where: { id: orderId },

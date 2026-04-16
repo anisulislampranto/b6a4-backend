@@ -6,6 +6,7 @@ import {
     PrismaClientUnknownRequestError
 } from "@prisma/client/runtime/client";
 import { NextFunction, Request, Response } from "express";
+import { AppError } from "../lib/AppError";
 
 export default function errorHandler(
     err: any,
@@ -17,8 +18,14 @@ export default function errorHandler(
     let errorMessage = "Internal Server Error";
     let errorDetails = err;
 
+    /* ---------------- Application Error ---------------- */
+    if (err instanceof AppError) {
+        statusCode = err.statusCode;
+        errorMessage = err.message;
+    }
+
     /* -------------------- Prisma Validation Error -------------------- */
-    if (err instanceof PrismaClientValidationError) {
+    else if (err instanceof PrismaClientValidationError) {
         statusCode = 400;
         errorMessage = "Invalid data provided or missing required fields.";
     }
