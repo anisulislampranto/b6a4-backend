@@ -7,6 +7,7 @@ import { brandRouter } from './modules/brand/brand.routes';
 import { medicineRouter } from './modules/medicine/medicine.routes';
 import { orderRouter } from './modules/order/order.routes';
 import { userRouter } from './modules/user/user.routes';
+import { reviewRouter } from './modules/review/review.routes';
 import { notFound } from './middleware/notFound';
 import errorHandler from './middleware/globalErrorHandler';
 
@@ -28,6 +29,7 @@ app.use('/api/brands', brandRouter)
 app.use("/api/medicines", medicineRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/users", userRouter);
+app.use("/api/reviews", reviewRouter);
 
 app.use(notFound)
 app.use(errorHandler)
