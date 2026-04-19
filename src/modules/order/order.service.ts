@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma";
 import { OrderStatus } from "../../../generated/prisma/client";
 import { AppError } from "../../lib/AppError";
 import { notificationService } from "../notification/notification.service";
+import { emailService } from "../../lib/email";
 
 export interface CreateOrderPayload {
     address: string;
@@ -360,6 +361,45 @@ const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     } catch {
     }
 
+    // Email: order confirmed (admin path)
+    if (existingOrder.status !== status && status === OrderStatus.CONFIRMED) {
+        try {
+            const orderDetails = await prisma.order.findUnique({
+                where: { id: orderId },
+                select: {
+                    id: true,
+                    address: true,
+                    totalAmount: true,
+                    user: { select: { email: true, name: true } },
+                    items: {
+                        select: {
+                            quantity: true,
+                            price: true,
+                            medicine: { select: { name: true } },
+                        },
+                    },
+                },
+            });
+
+            if (orderDetails?.user?.email) {
+                await emailService.sendOrderConfirmedEmail({
+                    to: orderDetails.user.email,
+                    customerName: orderDetails.user.name,
+                    orderId: orderDetails.id,
+                    address: orderDetails.address,
+                    totalAmount: orderDetails.totalAmount,
+                    items: orderDetails.items.map((item) => ({
+                        name: item.medicine.name,
+                        quantity: item.quantity,
+                        unitPrice: item.price,
+                    })),
+                });
+            }
+        } catch {
+            // no-op
+        }
+    }
+
     return updated;
 };
 
@@ -403,6 +443,45 @@ const updateSellerOrderStatus = async (orderId: string, sellerId: string, status
             metadata: { orderId, status, sellerId },
         });
     } catch {
+    }
+
+    // Email: order confirmed (seller path)
+    if (order.status !== status && status === OrderStatus.CONFIRMED) {
+        try {
+            const orderDetails = await prisma.order.findUnique({
+                where: { id: orderId },
+                select: {
+                    id: true,
+                    address: true,
+                    totalAmount: true,
+                    user: { select: { email: true, name: true } },
+                    items: {
+                        select: {
+                            quantity: true,
+                            price: true,
+                            medicine: { select: { name: true } },
+                        },
+                    },
+                },
+            });
+
+            if (orderDetails?.user?.email) {
+                await emailService.sendOrderConfirmedEmail({
+                    to: orderDetails.user.email,
+                    customerName: orderDetails.user.name,
+                    orderId: orderDetails.id,
+                    address: orderDetails.address,
+                    totalAmount: orderDetails.totalAmount,
+                    items: orderDetails.items.map((item) => ({
+                        name: item.medicine.name,
+                        quantity: item.quantity,
+                        unitPrice: item.price,
+                    })),
+                });
+            }
+        } catch {
+            // no-op
+        }
     }
 
     return updated;

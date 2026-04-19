@@ -38,6 +38,15 @@ BETTER_AUTH_URL=http://localhost:5000
 # Allowed frontend origin (CORS)
 APP_URL=http://localhost:3000
 
+# Email (Nodemailer SMTP)
+EMAIL_ENABLED=true
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+SMTP_FROM="MediStore <no-reply@medistore.com>"
+
 # Optional: NODE_ENV=development
 ```
 
@@ -49,7 +58,7 @@ Notes:
 
 ```bash
 cd B6A4-backend
-npm install
+pnpm install
 ```
 
 ## Database Setup (Prisma)
@@ -69,10 +78,10 @@ npx prisma migrate dev
 ## Scripts
 
 ```bash
-npm run dev        # start dev server (tsx watch)
-npm run build      # prisma generate + tsc --noEmit
-npm run typecheck  # tsc --noEmit
-npm run seed:admin # seed admin user
+pnpm run dev        # start dev server (tsx watch)
+pnpm run build      # prisma generate + tsc --noEmit
+pnpm run typecheck  # tsc --noEmit
+pnpm run seed:admin # seed admin user
 ```
 
 ## Seeded Admin
@@ -152,7 +161,7 @@ Current emission rules:
 
 ```bash
 cd B6A4-backend
-npm run dev
+pnpm run dev
 ```
 
 Backend runs at `http://localhost:5000`.
