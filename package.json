@@ -5,6 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "npx tsx watch src/server.ts",
+    "build": "npx prisma generate && npx tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "seed:admin": "npx tsx src/script/seedAdmin.ts"
   },
   "devDependencies": {
