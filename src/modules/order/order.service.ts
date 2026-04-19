@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { OrderStatus } from "../../../generated/prisma/client";
 import { AppError } from "../../lib/AppError";
+import { notificationService } from "../notification/notification.service";
 
 export interface CreateOrderPayload {
     address: string;
@@ -33,7 +34,7 @@ const validateOrderStatusTransition = (currentStatus: OrderStatus, nextStatus: O
 const createOrder = async (userId: string, payload: CreateOrderPayload) => {
     const { address, items } = payload;
 
-    return await prisma.$transaction(async (tx) => {
+    const order = await prisma.$transaction(async (tx) => {
         let totalAmount = 0;
         const orderItemsData = [];
 
@@ -89,10 +90,52 @@ const createOrder = async (userId: string, payload: CreateOrderPayload) => {
             },
         });
 
-        console.log("order", order)
 
         return order;
     });
+
+    // Notify relevant sellers (and admins) after order creation.
+    try {
+        const orderWithSellerIds = await prisma.order.findUnique({
+            where: { id: order.id },
+            select: {
+                id: true,
+                userId: true,
+                items: {
+                    select: {
+                        medicine: {
+                            select: {
+                                id: true,
+                                name: true,
+                                sellerId: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const sellerIds = Array.from(
+            new Set(orderWithSellerIds?.items.map((item) => item.medicine.sellerId) || [])
+        );
+
+        await Promise.all(
+            sellerIds.map((sellerId) =>
+                notificationService.createNotification({
+                    userId: sellerId,
+                    type: "ORDER_PLACED",
+                    title: "New order placed",
+                    message: `A customer placed an order containing your medicines (order #${order.id.slice(0, 8)}).`,
+                    href: `/seller/orders`,
+                    metadata: { orderId: order.id },
+                })
+            )
+        );
+    } catch {
+        // Don't fail order creation if notification fails.
+    }
+
+    return order;
 };
 
 const getMyOrders = async (userId: string, page: number = 1, limit: number = 10) => {
@@ -291,7 +334,7 @@ const getOrderById = async (orderId: string, userId: string, role: string) => {
 const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     const existingOrder = await prisma.order.findUnique({
         where: { id: orderId },
-        select: { status: true },
+        select: { status: true, userId: true },
     });
 
     if (!existingOrder) {
@@ -300,10 +343,24 @@ const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
 
     validateOrderStatusTransition(existingOrder.status, status);
 
-    return prisma.order.update({
+    const updated = await prisma.order.update({
         where: { id: orderId },
         data: { status },
     });
+
+    try {
+        await notificationService.createNotification({
+            userId: existingOrder.userId,
+            type: "ORDER_STATUS_UPDATED",
+            title: "Order status updated",
+            message: `Your order #${orderId.slice(0, 8)} status changed to ${status}.`,
+            href: `/orders/${orderId}`,
+            metadata: { orderId, status },
+        });
+    } catch {
+    }
+
+    return updated;
 };
 
 const updateSellerOrderStatus = async (orderId: string, sellerId: string, status: OrderStatus) => {
@@ -321,6 +378,7 @@ const updateSellerOrderStatus = async (orderId: string, sellerId: string, status
         select: {
             id: true,
             status: true,
+            userId: true,
         },
     });
 
@@ -330,10 +388,24 @@ const updateSellerOrderStatus = async (orderId: string, sellerId: string, status
 
     validateOrderStatusTransition(order.status, status);
 
-    return prisma.order.update({
+    const updated = await prisma.order.update({
         where: { id: orderId },
         data: { status },
     });
+
+    try {
+        await notificationService.createNotification({
+            userId: order.userId,
+            type: "ORDER_STATUS_UPDATED",
+            title: "Order status updated",
+            message: `Your order #${orderId.slice(0, 8)} status changed to ${status}.`,
+            href: `/orders/${orderId}`,
+            metadata: { orderId, status, sellerId },
+        });
+    } catch {
+    }
+
+    return updated;
 };
 
 export const orderService = {

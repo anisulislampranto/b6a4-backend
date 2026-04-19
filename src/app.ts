@@ -9,6 +9,7 @@ import { orderRouter } from './modules/order/order.routes';
 import { userRouter } from './modules/user/user.routes';
 import { reviewRouter } from './modules/review/review.routes';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes';
+import { notificationRouter } from './modules/notification/notification.routes';
 import { notFound } from './middleware/notFound';
 import errorHandler from './middleware/globalErrorHandler';
 
@@ -32,6 +33,7 @@ app.use("/api/orders", orderRouter);
 app.use("/api/users", userRouter);
 app.use("/api/reviews", reviewRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/notifications", notificationRouter);
 
 app.use(notFound)
 app.use(errorHandler)

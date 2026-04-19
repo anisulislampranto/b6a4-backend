@@ -8,6 +8,31 @@ import {
 import { NextFunction, Request, Response } from "express";
 import { AppError } from "../lib/AppError";
 
+const isDev = process.env.NODE_ENV !== "production";
+
+const serializeUnknownError = (err: unknown) => {
+    if (err instanceof Error) {
+        const base: Record<string, unknown> = {
+            name: err.name,
+            message: err.message,
+        };
+
+        if (isDev) {
+            base.stack = err.stack;
+        }
+
+        // Prisma errors often carry extra fields.
+        const anyErr = err as any;
+        if (anyErr.code) base.code = anyErr.code;
+        if (anyErr.meta) base.meta = anyErr.meta;
+
+        return base;
+    }
+
+    if (typeof err === "object" && err !== null) return err;
+    return { message: String(err) };
+};
+
 export default function errorHandler(
     err: any,
     req: Request,
@@ -16,7 +41,7 @@ export default function errorHandler(
 ) {
     let statusCode = 500;
     let errorMessage = "Internal Server Error";
-    let errorDetails = err;
+    let errorDetails: unknown = err;
 
     /* ---------------- Application Error ---------------- */
     if (err instanceof AppError) {
@@ -190,6 +215,6 @@ export default function errorHandler(
     /* ---------------- Final Response ---------------- */
     res.status(statusCode).json({
         message: errorMessage,
-        error: errorDetails
+        error: serializeUnknownError(errorDetails)
     });
 }

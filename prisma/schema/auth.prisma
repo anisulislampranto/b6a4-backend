@@ -13,6 +13,7 @@ model User {
   medicines   Medicine[] 
   orders      Order[]
   reviews     Review[]
+  notifications Notification[]
 
   @@map("user")
 }
