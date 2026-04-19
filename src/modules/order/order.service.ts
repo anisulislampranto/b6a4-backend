@@ -95,26 +95,45 @@ const createOrder = async (userId: string, payload: CreateOrderPayload) => {
     });
 };
 
-const getMyOrders = async (userId: string) => {
-    return prisma.order.findMany({
-        where: { userId },
-        include: {
-            items: {
-                include: {
-                    medicine: {
-                        select: {
-                            id: true,
-                            name: true,
-                            image: true,
+const getMyOrders = async (userId: string, page: number = 1, limit: number = 10) => {
+    const skip = (page - 1) * limit;
+
+    const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+            where: { userId },
+            include: {
+                items: {
+                    include: {
+                        medicine: {
+                            select: {
+                                id: true,
+                                name: true,
+                                image: true,
+                            },
                         },
                     },
                 },
             },
+            orderBy: {
+                createdAt: "desc",
+            },
+            skip,
+            take: limit,
+        }),
+        prisma.order.count({
+            where: { userId },
+        }),
+    ]);
+
+    return {
+        data: orders,
+        meta: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
         },
-        orderBy: {
-            createdAt: "desc",
-        },
-    });
+    };
 };
 
 const getAllOrders = async () => {

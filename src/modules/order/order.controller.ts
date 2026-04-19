@@ -30,6 +30,8 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
 const getMyOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = req.user?.id;
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
 
         if (!userId) {
             return res.status(401).json({
@@ -37,10 +39,11 @@ const getMyOrders = async (req: Request, res: Response, next: NextFunction) => {
             });
         }
 
-        const orders = await orderService.getMyOrders(userId);
+        const result = await orderService.getMyOrders(userId, page, limit);
 
         res.status(200).json({
-            data: orders,
+            data: result.data,
+            meta: result.meta,
             message: "Orders fetched successfully!",
         });
     } catch (error) {
