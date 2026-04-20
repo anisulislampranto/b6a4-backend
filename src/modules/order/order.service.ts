@@ -32,82 +32,16 @@ const validateOrderStatusTransition = (currentStatus: OrderStatus, nextStatus: O
     }
 };
 
-const createOrder = async (userId: string, payload: CreateOrderPayload) => {
-    const { address, items } = payload;
-
-    const order = await prisma.$transaction(async (tx) => {
-        let totalAmount = 0;
-        const orderItemsData = [];
-
-        for (const item of items) {
-
-            const medicine = await tx.medicine.findUnique({
-                where: { id: item.medicineId },
-            });
-
-
-            if (!medicine) {
-                throw new AppError(404, `Medicine with ID ${item.medicineId} not found`);
-            }
-
-            if (medicine.stock < item.quantity) {
-                console.log("medicine", medicine)
-            }
-
-
-            const itemPrice = medicine.price * item.quantity;
-            totalAmount += itemPrice;
-
-            orderItemsData.push({
-                medicineId: item.medicineId,
-                quantity: item.quantity,
-                price: medicine.price, // Store historical price at time of purchase
-            });
-
-
-            // Update Stock
-            await tx.medicine.update({
-                where: { id: item.medicineId },
-                data: {
-                    stock: {
-                        decrement: item.quantity,
-                    },
-                },
-            });
-        }
-
-        // Create the Order
-        const order = await tx.order.create({
-            data: {
-                userId,
-                address,
-                totalAmount,
-                items: {
-                    create: orderItemsData,
-                },
-            },
-            include: {
-                items: true,
-            },
-        });
-
-
-        return order;
-    });
-
-    // Notify relevant sellers (and admins) after order creation.
+const triggerPostOrderSideEffects = async (order: any) => {
     try {
         const orderWithSellerIds = await prisma.order.findUnique({
             where: { id: order.id },
             select: {
                 id: true,
-                userId: true,
                 items: {
                     select: {
                         medicine: {
                             select: {
-                                id: true,
-                                name: true,
                                 sellerId: true,
                             },
                         },
@@ -117,7 +51,7 @@ const createOrder = async (userId: string, payload: CreateOrderPayload) => {
         });
 
         const sellerIds = Array.from(
-            new Set(orderWithSellerIds?.items.map((item) => item.medicine.sellerId) || [])
+            new Set(orderWithSellerIds?.items.map(i => i.medicine.sellerId) || [])
         );
 
         await Promise.all(
@@ -126,15 +60,106 @@ const createOrder = async (userId: string, payload: CreateOrderPayload) => {
                     userId: sellerId,
                     type: "ORDER_PLACED",
                     title: "New order placed",
-                    message: `A customer placed an order containing your medicines (order #${order.id.slice(0, 8)}).`,
+                    message: `Order #${order.id.slice(0, 8)} includes your products.`,
                     href: `/seller/orders`,
                     metadata: { orderId: order.id },
                 })
             )
         );
-    } catch {
-        // Don't fail order creation if notification fails.
+
+    } catch (err) {
+        console.error("Post-order side effects failed:", err);
     }
+};
+
+const createOrder = async (userId: string, payload: CreateOrderPayload) => {
+    const { address, items } = payload;
+
+    const order = await prisma.$transaction(async (tx) => {
+        const medicineIds = items.map(i => i.medicineId);
+
+        const medicines = await tx.medicine.findMany({
+            where: { id: { in: medicineIds } },
+            select: {
+                id: true,
+                price: true,
+                stock: true,
+                name: true,
+            },
+        });
+
+        const medicineMap = Object.fromEntries(
+            medicines.map(m => [m.id, m])
+        );
+
+        const { totalAmount, orderItemsData, stockUpdates } = items.reduce(
+            (acc, item) => {
+                const medicine = medicineMap[item.medicineId];
+
+                if (!medicine) {
+                    throw new AppError(404, `Medicine not found`);
+                }
+
+                if (medicine.stock < item.quantity) {
+                    throw new AppError(400, `Insufficient stock for ${medicine.name}`);
+                }
+
+                acc.totalAmount += medicine.price * item.quantity;
+
+                acc.orderItemsData.push({
+                    medicineId: item.medicineId,
+                    quantity: item.quantity,
+                    price: medicine.price,
+                });
+
+                acc.stockUpdates.push({
+                    id: item.medicineId,
+                    quantity: item.quantity,
+                });
+
+                return acc;
+            },
+            {
+                totalAmount: 0,
+                orderItemsData: [] as any[],
+                stockUpdates: [] as { id: string; quantity: number }[],
+            }
+        );
+
+        const updateResults = await Promise.all(
+            stockUpdates.map((u) =>
+                tx.medicine.updateMany({
+                    where: {
+                        id: u.id,
+                        stock: { gte: u.quantity },
+                    },
+                    data: {
+                        stock: { decrement: u.quantity },
+                    },
+                })
+            )
+        );
+
+        if (updateResults.some(r => r.count === 0)) {
+            throw new AppError(400, "Some items are out of stock");
+        }
+
+        const order = await tx.order.create({
+            data: {
+                userId,
+                address,
+                totalAmount,
+                items: {
+                    create: orderItemsData,
+                },
+            },
+            include: { items: true },
+        });
+
+        return order;
+    });
+
+    await triggerPostOrderSideEffects(order);
 
     return order;
 };

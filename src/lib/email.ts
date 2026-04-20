@@ -83,47 +83,47 @@ const buildOrderConfirmedEmail = (payload: OrderConfirmedEmailPayload) => {
     .join("");
 
   const html = `
-+  <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:#f8fafc; padding:24px;">
-+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
-+      <div style="padding:18px 20px;background:linear-gradient(135deg,#d1fae5,#ecfdf5);border-bottom:1px solid #e2e8f0;">
-+        <h1 style="margin:0;font-size:18px;color:#065f46;">Order Confirmed</h1>
-+        <p style="margin:6px 0 0;font-size:13px;color:#064e3b;">Your MediStore order is now confirmed.</p>
-+      </div>
-+      <div style="padding:20px;">
-+        <p style="margin:0 0 12px;font-size:14px;color:#0f172a;">Hi <strong>${escapeHtml(greetingName)}</strong>,</p>
-+        <p style="margin:0 0 14px;font-size:14px;color:#334155;">Good news: your order has been confirmed.</p>
-+
-+        <div style="padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;margin-bottom:14px;">
-+          <div style="font-size:12px;color:#64748b;">Order ID</div>
-+          <div style="font-size:13px;color:#0f172a;font-weight:600;">#${escapeHtml(payload.orderId)}</div>
-+          <div style="height:10px;"></div>
-+          <div style="font-size:12px;color:#64748b;">Shipping Address</div>
-+          <div style="font-size:13px;color:#0f172a;">${escapeHtml(payload.address)}</div>
-+        </div>
-+
-+        <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
-+          <thead>
-+            <tr style="background:#f1f5f9;">
-+              <th style="padding:10px 12px;text-align:left;font-size:12px;color:#334155;">Item</th>
-+              <th style="padding:10px 12px;text-align:center;font-size:12px;color:#334155;">Qty</th>
-+              <th style="padding:10px 12px;text-align:right;font-size:12px;color:#334155;">Price</th>
-+            </tr>
-+          </thead>
-+          <tbody>
-+            ${itemRows}
-+          </tbody>
-+        </table>
-+
-+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
-+          <div style="font-size:13px;color:#64748b;">Total</div>
-+          <div style="font-size:16px;color:#065f46;font-weight:800;">$${formatMoney(payload.totalAmount)}</div>
-+        </div>
-+
-+        <p style="margin:18px 0 0;font-size:12px;color:#64748b;">Payment: Cash on Delivery</p>
-+      </div>
-+    </div>
-+  </div>
-+  `;
+    <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:#f8fafc; padding:24px;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
+        <div style="padding:18px 20px;background:linear-gradient(135deg,#d1fae5,#ecfdf5);border-bottom:1px solid #e2e8f0;">
+          <h1 style="margin:0;font-size:18px;color:#065f46;">Order Confirmed</h1>
+          <p style="margin:6px 0 0;font-size:13px;color:#064e3b;">Your MediStore order is now confirmed.</p>
+        </div>
+        <div style="padding:20px;">
+          <p style="margin:0 0 12px;font-size:14px;color:#0f172a;">Hi <strong>${escapeHtml(greetingName)}</strong>,</p>
+          <p style="margin:0 0 14px;font-size:14px;color:#334155;">Good news: your order has been confirmed.</p>
+
+          <div style="padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;margin-bottom:14px;">
+            <div style="font-size:12px;color:#64748b;">Order ID</div>
+            <div style="font-size:13px;color:#0f172a;font-weight:600;">#${escapeHtml(payload.orderId)}</div>
+            <div style="height:10px;"></div>
+            <div style="font-size:12px;color:#64748b;">Shipping Address</div>
+            <div style="font-size:13px;color:#0f172a;">${escapeHtml(payload.address)}</div>
+          </div>
+
+          <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+            <thead>
+              <tr style="background:#f1f5f9;">
+                <th style="padding:10px 12px;text-align:left;font-size:12px;color:#334155;">Item</th>
+                <th style="padding:10px 12px;text-align:center;font-size:12px;color:#334155;">Qty</th>
+                <th style="padding:10px 12px;text-align:right;font-size:12px;color:#334155;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemRows}
+            </tbody>
+          </table>
+
+          <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:13px;color:#64748b;">Total</div>
+            <div style="font-size:16px;color:#065f46;font-weight:800;">$${formatMoney(payload.totalAmount)}</div>
+          </div>
+
+          <p style="margin:18px 0 0;font-size:12px;color:#64748b;">Payment: Cash on Delivery</p>
+        </div>
+      </div>
+    </div>
+  `;
 
   return { subject, text, html };
 };
