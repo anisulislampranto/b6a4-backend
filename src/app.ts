@@ -14,6 +14,7 @@ import { notFound } from './middleware/notFound';
 import errorHandler from './middleware/globalErrorHandler';
 
 const app: Application = express();
+// app.set("trust proxy", true);
 
 
 const allowedOrigins = [
