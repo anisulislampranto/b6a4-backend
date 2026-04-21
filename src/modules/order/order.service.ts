@@ -3,9 +3,11 @@ import { OrderStatus } from "../../../generated/prisma/client";
 import { AppError } from "../../lib/AppError";
 import { notificationService } from "../notification/notification.service";
 import { emailService } from "../../lib/email";
+import { initiatePayment, verifyPayment } from "./order.utils";
 
 export interface CreateOrderPayload {
     address: string;
+    paymentMethod: string;
     items: {
         medicineId: string;
         quantity: number;
@@ -73,7 +75,7 @@ const triggerPostOrderSideEffects = async (order: any) => {
 };
 
 const createOrder = async (userId: string, payload: CreateOrderPayload) => {
-    const { address, items } = payload;
+    const { address, items, paymentMethod } = payload;
 
     const order = await prisma.$transaction(async (tx) => {
         const medicineIds = items.map(i => i.medicineId);
@@ -126,6 +128,10 @@ const createOrder = async (userId: string, payload: CreateOrderPayload) => {
             }
         );
 
+        // Don't update stock for COD yet if you want to wait for confirmation, 
+        // but usually we decrement and then increment back if cancelled.
+        // For online payment, we definitely decrement now or after payment.
+        // Let's stick to current logic of decrementing on order placement.
         const updateResults = await Promise.all(
             stockUpdates.map((u) =>
                 tx.medicine.updateMany({
@@ -144,24 +150,79 @@ const createOrder = async (userId: string, payload: CreateOrderPayload) => {
             throw new AppError(400, "Some items are out of stock");
         }
 
+        const transactionId = `TXN-${Date.now()}`;
+
         const order = await tx.order.create({
             data: {
                 userId,
                 address,
                 totalAmount,
+                paymentMethod,
+                transactionId,
                 items: {
                     create: orderItemsData,
                 },
             },
-            include: { items: true },
+            include: { user: true, items: true },
         });
 
         return order;
     });
 
+    if (paymentMethod === "SSL") {
+        const paymentResponse = await initiatePayment({
+            transactionId: order.transactionId,
+            totalPrice: order.totalAmount,
+            customerName: order.user.name,
+            customerEmail: order.user.email,
+            customerAddress: order.address,
+            customerPhone: "", 
+        });
+
+        return {
+            payment_url: paymentResponse.GatewayPageURL,
+        };
+    }
+
     await triggerPostOrderSideEffects(order);
 
     return order;
+};
+
+const handlePaymentConfirmation = async (transactionId: string, valId: string) => {
+    const verifyResponse = await verifyPayment(valId);
+
+    let message = "";
+    if (verifyResponse && verifyResponse.status === "VALID") {
+        await prisma.order.update({
+            where: { transactionId },
+            data: {
+                paymentStatus: "PAID",
+            },
+        });
+        message = "Successfully Paid!";
+    } else {
+        message = "Payment Failed!";
+    }
+
+    return `
+    <html>
+      <head>
+        <style>
+          body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0fdf4; }
+          .card { background: white; padding: 2rem; border-radius: 1rem; shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+          h1 { color: #059669; }
+          a { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #059669; color: white; text-decoration: none; border-radius: 0.5rem; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>${message}</h1>
+          <a href="${process.env.APP_URL}/orders">Go to Orders</a>
+        </div>
+      </body>
+    </html>
+    `;
 };
 
 const getMyOrders = async (userId: string, page: number = 1, limit: number = 10) => {
@@ -520,4 +581,5 @@ export const orderService = {
     getSellerOrders,
     updateOrderStatus,
     updateSellerOrderStatus,
+    handlePaymentConfirmation,
 };

@@ -7,6 +7,8 @@ model Order {
   status        OrderStatus  @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
   address       String
+  paymentMethod String       @default("COD")
+  transactionId String?      @unique
 
   items         OrderItem[]
 

@@ -159,6 +159,21 @@ const updateSellerOrderStatus = async (req: Request, res: Response, next: NextFu
     }
 };
 
+const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { transactionId } = req.query;
+        // Capture transactionId and val_id from body (SSLCommerz uses POST for callbacks)
+        const tnxId = (transactionId || req.body?.tran_id) as string;
+        const valId = req.body?.val_id as string;
+        
+        const result = await orderService.handlePaymentConfirmation(tnxId, valId);
+
+        res.send(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const OrderController = {
     createOrder,
     getMyOrders,
@@ -167,4 +182,5 @@ export const OrderController = {
     updateOrderStatus,
     getSellerOrders,
     updateSellerOrderStatus,
+    verifyPayment,
 };
