@@ -161,12 +161,11 @@ const updateSellerOrderStatus = async (req: Request, res: Response, next: NextFu
 
 const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { transactionId } = req.query;
-        // Capture transactionId and val_id from body (SSLCommerz uses POST for callbacks)
+        const { transactionId, session_id } = req.query;
         const tnxId = (transactionId || req.body?.tran_id) as string;
-        const valId = req.body?.val_id as string;
+        const sessionId = (session_id || req.body?.session_id) as string;
         
-        const result = await orderService.handlePaymentConfirmation(tnxId, valId);
+        const result = await orderService.handlePaymentConfirmation(tnxId, sessionId);
 
         res.send(result);
     } catch (error) {

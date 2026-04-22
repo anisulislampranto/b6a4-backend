@@ -3,7 +3,7 @@ import { OrderStatus } from "../../../generated/prisma/client";
 import { AppError } from "../../lib/AppError";
 import { notificationService } from "../notification/notification.service";
 import { emailService } from "../../lib/email";
-import { initiatePayment, verifyPayment } from "./order.utils";
+import { createStripeSession, verifyStripePayment } from "./order.utils";
 
 export interface CreateOrderPayload {
     address: string;
@@ -77,110 +77,116 @@ const triggerPostOrderSideEffects = async (order: any) => {
 const createOrder = async (userId: string, payload: CreateOrderPayload) => {
     const { address, items, paymentMethod } = payload;
 
-    const order = await prisma.$transaction(async (tx) => {
-        const medicineIds = items.map(i => i.medicineId);
+    const order = (await prisma.$transaction(
+        async (tx) => {
+            const medicineIds = items.map((i) => i.medicineId);
 
-        const medicines = await tx.medicine.findMany({
-            where: { id: { in: medicineIds } },
-            select: {
-                id: true,
-                price: true,
-                stock: true,
-                name: true,
-            },
-        });
-
-        const medicineMap = Object.fromEntries(
-            medicines.map(m => [m.id, m])
-        );
-
-        const { totalAmount, orderItemsData, stockUpdates } = items.reduce(
-            (acc, item) => {
-                const medicine = medicineMap[item.medicineId];
-
-                if (!medicine) {
-                    throw new AppError(404, `Medicine not found`);
-                }
-
-                if (medicine.stock < item.quantity) {
-                    throw new AppError(400, `Insufficient stock for ${medicine.name}`);
-                }
-
-                acc.totalAmount += medicine.price * item.quantity;
-
-                acc.orderItemsData.push({
-                    medicineId: item.medicineId,
-                    quantity: item.quantity,
-                    price: medicine.price,
-                });
-
-                acc.stockUpdates.push({
-                    id: item.medicineId,
-                    quantity: item.quantity,
-                });
-
-                return acc;
-            },
-            {
-                totalAmount: 0,
-                orderItemsData: [] as any[],
-                stockUpdates: [] as { id: string; quantity: number }[],
-            }
-        );
-
-        // Don't update stock for COD yet if you want to wait for confirmation, 
-        // but usually we decrement and then increment back if cancelled.
-        // For online payment, we definitely decrement now or after payment.
-        // Let's stick to current logic of decrementing on order placement.
-        const updateResults = await Promise.all(
-            stockUpdates.map((u) =>
-                tx.medicine.updateMany({
-                    where: {
-                        id: u.id,
-                        stock: { gte: u.quantity },
-                    },
-                    data: {
-                        stock: { decrement: u.quantity },
-                    },
-                })
-            )
-        );
-
-        if (updateResults.some(r => r.count === 0)) {
-            throw new AppError(400, "Some items are out of stock");
-        }
-
-        const transactionId = `TXN-${Date.now()}`;
-
-        const order = await tx.order.create({
-            data: {
-                userId,
-                address,
-                totalAmount,
-                paymentMethod,
-                transactionId,
-                items: {
-                    create: orderItemsData,
+            const medicines = await tx.medicine.findMany({
+                where: { id: { in: medicineIds } },
+                select: {
+                    id: true,
+                    price: true,
+                    stock: true,
+                    name: true,
                 },
-            },
-            include: { user: true, items: true },
-        });
+            });
 
-        return order;
-    });
+            const medicineMap = Object.fromEntries(medicines.map((m) => [m.id, m]));
 
-    if (paymentMethod === "SSL") {
-        const paymentResponse = await initiatePayment({
+            const { totalAmount, orderItemsData, stockUpdates } = items.reduce(
+                (acc, item) => {
+                    const medicine = medicineMap[item.medicineId];
+
+                    if (!medicine) {
+                        throw new AppError(404, `Medicine not found`);
+                    }
+
+                    if (medicine.stock < item.quantity) {
+                        throw new AppError(400, `Insufficient stock for ${medicine.name}`);
+                    }
+
+                    acc.totalAmount += medicine.price * item.quantity;
+
+                    acc.orderItemsData.push({
+                        medicineId: item.medicineId,
+                        quantity: item.quantity,
+                        price: medicine.price,
+                    });
+
+                    acc.stockUpdates.push({
+                        id: item.medicineId,
+                        quantity: item.quantity,
+                    });
+
+                    return acc;
+                },
+                {
+                    totalAmount: 0,
+                    orderItemsData: [] as any[],
+                    stockUpdates: [] as { id: string; quantity: number }[],
+                }
+            );
+
+            // Don't update stock for COD yet if you want to wait for confirmation, 
+            // but usually we decrement and then increment back if cancelled.
+            // For online payment, we definitely decrement now or after payment.
+            // Let's stick to current logic of decrementing on order placement.
+            const updateResults = await Promise.all(
+                stockUpdates.map((u) =>
+                    tx.medicine.updateMany({
+                        where: {
+                            id: u.id,
+                            stock: { gte: u.quantity },
+                        },
+                        data: {
+                            stock: { decrement: u.quantity },
+                        },
+                    })
+                )
+            );
+
+            if (updateResults.some((r) => r.count === 0)) {
+                throw new AppError(400, "Some items are out of stock");
+            }
+
+            const transactionId = `TXN-${Date.now()}`;
+
+            const newOrder = await tx.order.create({
+                data: {
+                    userId,
+                    address,
+                    totalAmount,
+                    paymentMethod,
+                    transactionId,
+                    items: {
+                        create: orderItemsData,
+                    },
+                },
+                include: { user: true, items: true },
+            });
+
+            return newOrder;
+        },
+        {
+            maxWait: 5000, // default: 2000
+            timeout: 10000, // default: 5000
+        }
+    )) as any;
+
+    if (paymentMethod === "STRIPE") {
+        const session = await createStripeSession({
             transactionId: order.transactionId,
             totalPrice: order.totalAmount,
             customerName: order.user.name,
             customerEmail: order.user.email,
-            customerAddress: order.address,
-            customerPhone: "", 
         });
 
+        if (!session.url) {
+            throw new AppError(400, "Stripe session creation failed");
+        }
+
         return {
-            payment_url: paymentResponse.GatewayPageURL,
+            payment_url: session.url,
         };
     }
 
@@ -189,11 +195,11 @@ const createOrder = async (userId: string, payload: CreateOrderPayload) => {
     return order;
 };
 
-const handlePaymentConfirmation = async (transactionId: string, valId: string) => {
-    const verifyResponse = await verifyPayment(valId);
+const handlePaymentConfirmation = async (transactionId: string, sessionId: string) => {
+    const session = await verifyStripePayment(sessionId);
 
     let message = "";
-    if (verifyResponse && verifyResponse.status === "VALID") {
+    if (session && (session.payment_status === "paid" || session.status === "complete")) {
         await prisma.order.update({
             where: { transactionId },
             data: {
