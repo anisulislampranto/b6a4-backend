@@ -11,5 +11,6 @@ router.get("/all", auth(UserRole.ADMIN), OrderController.getAllOrders);
 router.get("/:id", auth(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SELLER), OrderController.getOrderById);
 router.patch("/seller/:id", auth(UserRole.SELLER, UserRole.ADMIN), OrderController.updateSellerOrderStatus);
 router.patch("/:id", auth(UserRole.ADMIN), OrderController.updateOrderStatus);
+router.post("/confirmation", OrderController.verifyPayment);
 
 export const orderRouter: Router = router;

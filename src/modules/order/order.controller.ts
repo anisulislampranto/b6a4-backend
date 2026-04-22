@@ -159,6 +159,20 @@ const updateSellerOrderStatus = async (req: Request, res: Response, next: NextFu
     }
 };
 
+const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { transactionId, session_id } = req.query;
+        const tnxId = (transactionId || req.body?.tran_id) as string;
+        const sessionId = (session_id || req.body?.session_id) as string;
+        
+        const result = await orderService.handlePaymentConfirmation(tnxId, sessionId);
+
+        res.send(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const OrderController = {
     createOrder,
     getMyOrders,
@@ -167,4 +181,5 @@ export const OrderController = {
     updateOrderStatus,
     getSellerOrders,
     updateSellerOrderStatus,
+    verifyPayment,
 };
