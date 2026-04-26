@@ -8,4 +8,5 @@ model OrderItem {
 
   quantity   Int
   price      Float
+  status     OrderStatus @default(PENDING)
 }

@@ -18,6 +18,7 @@ model Order {
 
 enum OrderStatus {
   PENDING
+  PARTIALLY_CONFIRMED
   CONFIRMED
   SHIPPED
   DELIVERED

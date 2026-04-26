@@ -245,6 +245,9 @@ const getMyOrders = async (userId: string, page: number = 1, limit: number = 10)
                                 id: true,
                                 name: true,
                                 image: true,
+                                seller: {
+                                    select: { id: true, name: true },
+                                },
                             },
                         },
                     },
@@ -344,7 +347,13 @@ const getOrderById = async (orderId: string, userId: string, role: string) => {
                 },
                 items: {
                     include: {
-                        medicine: true,
+                        medicine: {
+                            include: {
+                                seller: {
+                                    select: { id: true, name: true },
+                                },
+                            },
+                        },
                     },
                 },
             },
@@ -384,7 +393,13 @@ const getOrderById = async (orderId: string, userId: string, role: string) => {
                         },
                     },
                     include: {
-                        medicine: true,
+                        medicine: {
+                            include: {
+                                seller: {
+                                    select: { id: true, name: true },
+                                },
+                            },
+                        },
                     },
                 },
             },
@@ -410,6 +425,9 @@ const getOrderById = async (orderId: string, userId: string, role: string) => {
                             id: true,
                             name: true,
                             image: true,
+                            seller: {
+                                select: { id: true, name: true },
+                            },
                         },
                     },
                 },
@@ -436,9 +454,16 @@ const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
 
     validateOrderStatusTransition(existingOrder.status, status);
 
-    const updated = await prisma.order.update({
-        where: { id: orderId },
-        data: { status },
+    const updated = await prisma.$transaction(async (tx) => {
+        await tx.orderItem.updateMany({
+            where: { orderId },
+            data: { status },
+        });
+
+        return await tx.order.update({
+            where: { id: orderId },
+            data: { status },
+        });
     });
 
     try {
@@ -520,9 +545,60 @@ const updateSellerOrderStatus = async (orderId: string, sellerId: string, status
 
     validateOrderStatusTransition(order.status, status);
 
+    await prisma.orderItem.updateMany({
+        where: {
+            orderId,
+            medicine: {
+                sellerId,
+            },
+        },
+        data: { status },
+    });
+
+    const allItems = await prisma.orderItem.findMany({
+        where: { orderId },
+    });
+
+    const activeItems = allItems.filter(i => i.status !== "CANCELLED");
+    let nextOrderStatus: OrderStatus;
+
+    if (allItems.length > 0 && activeItems.length === 0) {
+        nextOrderStatus = "CANCELLED";
+    } else if (activeItems.every(i => i.status === "DELIVERED")) {
+        nextOrderStatus = "DELIVERED";
+    } else if (activeItems.every(i => i.status === "SHIPPED")) {
+        nextOrderStatus = "SHIPPED";
+    } else if (activeItems.every(i => i.status !== "PENDING")) {
+        // All non-cancelled items are at least CONFIRMED
+        nextOrderStatus = "CONFIRMED";
+    } else if (activeItems.some(i => i.status !== "PENDING")) {
+        // Some items are confirmed/shipped/delivered, but some are still PENDING
+        nextOrderStatus = "PARTIALLY_CONFIRMED";
+    } else {
+        nextOrderStatus = "PENDING";
+    }
+
     const updated = await prisma.order.update({
         where: { id: orderId },
-        data: { status },
+        data: { status: nextOrderStatus },
+        include: {
+            items: {
+                where: {
+                    medicine: {
+                        sellerId,
+                    },
+                },
+                include: {
+                    medicine: {
+                        include: {
+                            seller: {
+                                select: { id: true, name: true },
+                            },
+                        },
+                    },
+                },
+            },
+        },
     });
 
     try {
